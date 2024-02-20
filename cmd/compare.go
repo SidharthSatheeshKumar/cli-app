@@ -21,15 +21,18 @@ var compareCmd = &cobra.Command{
 	The two responses were converted to JSON encoded format and compared those formats and the difference will be returned as a JSON response`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		apiRespOriginal, err := app.GetApiResponse(args[0])
-		if err != nil {
-			log.Fatalf("api call issue:%s  | endpoint: %s", err.Error(), args[0])
-		}
-		apiRespComp, err := app.GetApiResponse(args[1])
-		if err != nil {
-			log.Fatalf("api call issue:%s | endpoint: %s", err.Error(), args[1])
-		}
+		var apiRespOriginalCh, apiRespCompCh = make(chan string), make(chan string)
+		var apiRespOriginal, apiRespComp string
 
+		defer func() {
+			close(apiRespOriginalCh)
+			close(apiRespCompCh)
+		}()
+
+		go app.GetApiResponse(args[0], apiRespOriginalCh)
+		go app.GetApiResponse(args[1], apiRespCompCh)
+
+		apiRespOriginal, apiRespComp = <-apiRespOriginalCh, <-apiRespCompCh
 		responseSummary, err := app.ResponseCheck(apiRespOriginal, apiRespComp)
 		if err != nil {
 			log.Fatalf("checking issue: %s", err.Error())
