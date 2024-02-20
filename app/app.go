@@ -2,9 +2,9 @@ package app
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -37,14 +37,14 @@ func ResponseCheck(firstApi string, secondApi string) (ApiResponseDifference, er
 	return ApiResponseDifference{}, nil
 }
 
-func GetApiResponse(endpoint string) (string, error) {
+func GetApiResponse(endpoint string, c chan string) {
 	urlStruct, err := url.Parse(endpoint)
 	if err != nil {
-		return "", err
+		log.Fatalf("parse error: %s", err.Error())
 	}
 	request, err := http.NewRequest("GET", urlStruct.String(), nil)
 	if err != nil {
-		return "", err
+		log.Fatalf("issue with request: %s", err.Error())
 	}
 
 	client := &http.Client{}
@@ -52,7 +52,7 @@ func GetApiResponse(endpoint string) (string, error) {
 	// Send the request
 	response, err := client.Do(request)
 	if err != nil {
-		return "", err
+		log.Fatalf("call error: %s", err.Error())
 	}
 
 	defer response.Body.Close()
@@ -60,13 +60,14 @@ func GetApiResponse(endpoint string) (string, error) {
 	// Expecting response with 200 status code
 	if response.StatusCode != 200 {
 		errMsg := fmt.Sprintf("status code of %s is %d", endpoint, response.StatusCode)
-		return "", errors.New(errMsg)
+		log.Fatalln(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return "", err
+		log.Fatalf("response issue: %s", err.Error())
+
 	}
 
-	return string(body), nil
+	c <- string(body)
 }
