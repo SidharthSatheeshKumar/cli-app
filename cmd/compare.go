@@ -38,6 +38,7 @@ var compareCmd = &cobra.Command{
 			log.Fatalf("checking issue: %s", err.Error())
 		}
 
+		// Check if the response is not empty
 		if responseSummary != (app.ApiResponseDifference{}) {
 			byteResp, err := json.Marshal(responseSummary)
 			if err != nil {
